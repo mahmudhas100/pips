@@ -18,9 +18,9 @@ let tray = null;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,  // Increased for testing
-        height: 600, // Increased for testing
-        resizable: true, // Enable resizing for testing
+        width: 350,
+        height: 550, // Increased for morse display
+        resizable: false,
         backgroundColor: '#000000',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),

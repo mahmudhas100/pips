@@ -72,10 +72,20 @@ class TimeScheduler {
             console.log('Quarter beeps are disabled');
         }
 
-        // TODO: Add hourly morse code announcement in Phase 2
-        // if (minutes === 0) {
-        //   this.playHourlyMorse(now);
-        // }
+        // Hourly morse code announcement
+        if (minutes === 0) {
+            console.log('Triggering hourly morse announcement');
+            let hours = now.getHours();
+            const mins = now.getMinutes();
+
+            // Apply time format
+            if (this.settings.timeFormat === '12hr') {
+                hours = hours % 12 || 12;
+            }
+
+            const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+            this.audioSystem.playMorseTime(timeString);
+        }
     }
 }
 

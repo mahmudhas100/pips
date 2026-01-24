@@ -43,6 +43,12 @@ function applySettingsToUI() {
     const quarterBeeps = document.getElementById('quarterBeeps');
     quarterBeeps.checked = settings.quarterBeepsEnabled;
 
+    // Time format
+    const formatRadio = document.querySelector(`input[name="timeFormat"][value="${settings.timeFormat}"]`);
+    if (formatRadio) {
+        formatRadio.checked = true;
+    }
+
     // Update status indicator
     updateStatusIndicator();
 }
@@ -55,12 +61,28 @@ function startTimeDisplay() {
 
 function updateTimeDisplay() {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
 
-    const timeText = `${hours}:${minutes}:${seconds}`;
+    // Apply time format
+    let displayHours = hours;
+    if (settings.timeFormat === '12hr') {
+        displayHours = hours % 12 || 12; // Convert 0 to 12 for midnight
+    }
+
+    // Update numeric time
+    const hoursStr = String(displayHours).padStart(2, '0');
+    const minutesStr = String(minutes).padStart(2, '0');
+    const secondsStr = String(seconds).padStart(2, '0');
+    const timeText = `${hoursStr}:${minutesStr}:${secondsStr}`;
     document.getElementById('currentTime').textContent = timeText;
+
+    // Update morse code display
+    const morse = window.morseEncoder.timeToVisualMorse(displayHours, minutes, seconds);
+    document.getElementById('morseHours').textContent = morse.hours;
+    document.getElementById('morseMinutes').textContent = morse.minutes;
+    document.getElementById('morseSeconds').textContent = morse.seconds;
 }
 
 // Set up event listeners
@@ -101,6 +123,34 @@ function setupEventListeners() {
             masterPause: settings.masterPause,
             quarterBeepsEnabled: settings.quarterBeepsEnabled
         });
+    });
+
+    // Time format radio buttons
+    document.querySelectorAll('input[name="timeFormat"]').forEach(radio => {
+        radio.addEventListener('change', async (e) => {
+            if (e.target.checked) {
+                settings.timeFormat = e.target.value;
+                console.log(`Time format changed to: ${e.target.value}`);
+                await window.electronAPI.setSetting('timeFormat', e.target.value);
+                updateTimeDisplay(); // Immediately update display
+            }
+        });
+    });
+
+    // Test morse button
+    document.getElementById('testMorseBtn').addEventListener('click', () => {
+        const now = new Date();
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+
+        // Apply time format
+        if (settings.timeFormat === '12hr') {
+            hours = hours % 12 || 12;
+        }
+
+        const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        console.log(`Testing morse for: ${timeString}`);
+        window.audioSystem.playMorseTime(timeString);
     });
 
     // Initialize audio context on first user interaction

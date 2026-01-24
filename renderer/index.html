@@ -8,10 +8,15 @@
 </head>
 <body>
   <div class="container">
-    <!-- Time Display -->
-    <div class="time-display">
-      <div id="currentTime" class="time-text">00:00:00</div>
+    <!-- Morse Code Display -->
+    <div class="morse-display">
+      <div id="morseHours" class="morse-line">−−−−−    •−−−−</div>
+      <div id="morseMinutes" class="morse-line">−−−−−    −−−−−</div>
+      <div id="morseSeconds" class="morse-line">−−−−−    −−−−−</div>
     </div>
+    
+    <!-- Numeric Time (Secondary) -->
+    <div id="currentTime" class="time-text-small">00:00:00</div>
 
     <!-- Settings Panel -->
     <div class="settings-panel">
@@ -44,6 +49,26 @@
         </label>
       </div>
 
+      <!-- Time Format Toggle -->
+      <div class="setting-row">
+        <span class="setting-label">Time Format</span>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="timeFormat" value="24hr" checked>
+            <span>24hr</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="timeFormat" value="12hr">
+            <span>12hr</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Test Morse Button -->
+      <div class="setting-row">
+        <button id="testMorseBtn" class="test-btn">Test Morse</button>
+      </div>
+
       <!-- Status Indicator -->
       <div class="status-row">
         <span class="status-label">Status:</span>
@@ -52,6 +77,7 @@
     </div>
   </div>
 
+  <script src="../utils/morse-encoder.js"></script>
   <script src="audio-system.js"></script>
   <script src="time-scheduler.js"></script>
   <script src="renderer.js"></script>
