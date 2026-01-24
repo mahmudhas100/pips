@@ -1,0 +1,194 @@
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', 'Consolas', 'Courier New', monospace;
+  background-color: #000000;
+  color: #FFFFFF;
+  width: 350px;
+  height: 400px;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px;
+}
+
+/* Time Display */
+.time-display {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.time-text {
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: 4px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  color: #FFFFFF;
+}
+
+/* Settings Panel */
+.settings-panel {
+  background-color: #111111;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #333333;
+}
+
+.settings-panel h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.setting-row label {
+  font-size: 13px;
+  color: #CCCCCC;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333333;
+  border-radius: 24px;
+  transition: 0.3s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #666666;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #FFFFFF;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background-color: #000000;
+}
+
+/* Volume Control */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#volumeSlider {
+  width: 120px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333333;
+  outline: none;
+  border-radius: 2px;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+#volumeSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #FFFFFF;
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+}
+
+.volume-display {
+  font-size: 12px;
+  color: #999999;
+  min-width: 40px;
+  text-align: right;
+  font-family: 'Consolas', monospace;
+}
+
+/* Status Row */
+.status-row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #222222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-label {
+  font-size: 11px;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#statusIndicator {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.status-active {
+  color: #00FF00;
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+.status-paused {
+  color: #FF9900;
+  background-color: rgba(255, 153, 0, 0.1);
+}

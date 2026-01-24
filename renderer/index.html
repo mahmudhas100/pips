@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morseo</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Time Display -->
+    <div class="time-display">
+      <div id="currentTime" class="time-text">00:00:00</div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel">
+      <h2>Settings</h2>
+      
+      <!-- Master Toggle -->
+      <div class="setting-row">
+        <label for="masterToggle">Master Control</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="masterToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Volume Slider -->
+      <div class="setting-row">
+        <label for="volumeSlider">Volume</label>
+        <div class="volume-control">
+          <input type="range" id="volumeSlider" min="0" max="100" value="50">
+          <span id="volumeValue" class="volume-display">50%</span>
+        </div>
+      </div>
+
+      <!-- Quarter Beeps Toggle -->
+      <div class="setting-row">
+        <label for="quarterBeeps">Quarter-Hour Beeps</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="quarterBeeps" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Status Indicator -->
+      <div class="status-row">
+        <span class="status-label">Status:</span>
+        <span id="statusIndicator" class="status-active">Active</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="audio-system.js"></script>
+  <script src="time-scheduler.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
