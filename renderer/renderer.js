@@ -5,7 +5,6 @@ let settings = {};
 document.addEventListener('DOMContentLoaded', async () => {
     // Load settings
     settings = await window.electronAPI.getAllSettings();
-    console.log('Initial settings loaded:', JSON.stringify(settings));
     applySettingsToUI();
 
     // Start time display updates
@@ -24,6 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         applySettingsToUI();
         window.timeScheduler.updateSettings(settings);
     });
+
+    // Initialize audio context early to prevent missed first beeps
+    // This happens after user interaction (DOMContentLoaded)
+    window.audioSystem.init();
 });
 
 // Apply loaded settings to UI
@@ -44,10 +47,14 @@ function applySettingsToUI() {
     quarterBeeps.checked = settings.quarterBeepsEnabled;
 
     // Time format
-    const formatRadio = document.querySelector(`input[name="timeFormat"][value="${settings.timeFormat}"]`);
+    const formatRadio = document.querySelector(`input[name="timeFormat"][value="${settings.timeFormat || '24hr'}"]`);
     if (formatRadio) {
         formatRadio.checked = true;
     }
+
+    // Quiet hours
+    const quietHours = document.getElementById('quietHours');
+    quietHours.checked = settings.quietHours || false;
 
     // Update status indicator
     updateStatusIndicator();
@@ -87,17 +94,36 @@ function updateTimeDisplay() {
 
 // Set up event listeners
 function setupEventListeners() {
+    // Settings modal
+    const settingsIcon = document.getElementById('settingsIcon');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettings = document.getElementById('closeSettings');
+
+    settingsIcon.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+    });
+
+    closeSettings.addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+    });
+
+    // Close modal when clicking outside
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.classList.remove('active');
+        }
+    });
+
     // Master toggle
     document.getElementById('masterToggle').addEventListener('change', async (e) => {
         settings.masterPause = !e.target.checked;
-        console.log(`Master toggle changed: checked=${e.target.checked}, masterPause=${settings.masterPause}`);;
-        console.log('Current settings object:', JSON.stringify(settings));
         await window.electronAPI.setSetting('masterPause', settings.masterPause);
 
         // Pass updated settings to scheduler with new object
         window.timeScheduler.updateSettings({
             masterPause: settings.masterPause,
-            quarterBeepsEnabled: settings.quarterBeepsEnabled
+            quarterBeepsEnabled: settings.quarterBeepsEnabled,
+            quietHours: settings.quietHours
         });
         updateStatusIndicator();
     });
@@ -114,14 +140,13 @@ function setupEventListeners() {
     // Quarter beeps toggle
     document.getElementById('quarterBeeps').addEventListener('change', async (e) => {
         settings.quarterBeepsEnabled = e.target.checked;
-        console.log(`Quarter beeps toggle changed: ${e.target.checked}`);
-        console.log('Current settings object:', JSON.stringify(settings));
         await window.electronAPI.setSetting('quarterBeepsEnabled', e.target.checked);
 
         // Pass updated settings to scheduler with new object
         window.timeScheduler.updateSettings({
             masterPause: settings.masterPause,
-            quarterBeepsEnabled: settings.quarterBeepsEnabled
+            quarterBeepsEnabled: settings.quarterBeepsEnabled,
+            quietHours: settings.quietHours
         });
     });
 
@@ -130,11 +155,38 @@ function setupEventListeners() {
         radio.addEventListener('change', async (e) => {
             if (e.target.checked) {
                 settings.timeFormat = e.target.value;
-                console.log(`Time format changed to: ${e.target.value}`);
                 await window.electronAPI.setSetting('timeFormat', e.target.value);
                 updateTimeDisplay(); // Immediately update display
             }
         });
+    });
+
+    // Quiet hours toggle
+    document.getElementById('quietHours').addEventListener('change', async (e) => {
+        settings.quietHours = e.target.checked;
+        await window.electronAPI.setSetting('quietHours', e.target.checked);
+
+        // Pass updated settings to scheduler
+        window.timeScheduler.updateSettings({
+            masterPause: settings.masterPause,
+            quarterBeepsEnabled: settings.quarterBeepsEnabled,
+            quietHours: settings.quietHours
+        });
+    });
+
+    // Auto-launch toggle
+    document.getElementById('autoLaunch').addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        const success = await window.electronAPI.setAutoLaunch(enabled);
+        if (!success) {
+            // Revert checkbox if failed
+            e.target.checked = !enabled;
+        }
+    });
+
+    // Load auto-launch status on startup
+    window.electronAPI.getAutoLaunch().then(enabled => {
+        document.getElementById('autoLaunch').checked = enabled;
     });
 
     // Test morse button
@@ -149,7 +201,6 @@ function setupEventListeners() {
         }
 
         const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-        console.log(`Testing morse for: ${timeString}`);
         window.audioSystem.playMorseTime(timeString);
     });
 
@@ -161,13 +212,12 @@ function setupEventListeners() {
 
 // Update status indicator
 function updateStatusIndicator() {
-    const statusIndicator = document.getElementById('statusIndicator');
-
+    const indicator = document.getElementById('statusIndicator');
     if (settings.masterPause) {
-        statusIndicator.textContent = 'Paused';
-        statusIndicator.className = 'status-paused';
+        indicator.textContent = 'Paused';
+        indicator.className = 'status-badge status-paused';
     } else {
-        statusIndicator.textContent = 'Active';
-        statusIndicator.className = 'status-active';
+        indicator.textContent = 'Active';
+        indicator.className = 'status-badge status-active';
     }
 }

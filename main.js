@@ -1,9 +1,20 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
-const SimpleStore = require('./utils/simple-store');
+const Store = require('./utils/simple-store');
+const AutoLaunch = require('auto-launch');
+
+let mainWindow;
+let tray = null;
+let store;
+
+// Initialize auto-launcher
+const morseoAutoLauncher = new AutoLaunch({
+    name: 'Morseo',
+    path: app.getPath('exe'),
+});
 
 // Initialize settings store
-const store = new SimpleStore({
+store = new Store({
     defaults: {
         volume: 50,
         masterPause: false,
@@ -13,21 +24,19 @@ const store = new SimpleStore({
     }
 });
 
-let mainWindow = null;
-let tray = null;
-
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 350,
-        height: 550, // Increased for morse display
+        width: 400,
+        height: 450,
         resizable: false,
         backgroundColor: '#000000',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            backgroundThrottling: false // Prevent timer throttling when hidden
         },
-        icon: path.join(__dirname, 'assets', 'icons', 'tray-icon.png')
+        icon: path.join(__dirname, 'assets', 'icons', 'app-icon.png')
     });
 
     mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -47,18 +56,29 @@ function createWindow() {
     });
 }
 
+// Create system tray icon
 function createTray() {
     try {
+        const { nativeImage } = require('electron');
         const iconPath = path.join(__dirname, 'assets', 'icons', 'tray-icon.png');
 
-        // Check if icon exists
+        // Check if file exists
         const fs = require('fs');
         if (!fs.existsSync(iconPath)) {
-            console.warn('Tray icon not found, skipping tray creation');
+            console.error('Tray icon file not found at:', iconPath);
             return;
         }
 
-        tray = new Tray(iconPath);
+        // Load from file - more reliable than base64 on Windows
+        const trayIcon = nativeImage.createFromPath(iconPath);
+
+        if (trayIcon.isEmpty()) {
+            console.error('Tray icon is empty!');
+            return;
+        }
+
+        tray = new Tray(trayIcon);
+        console.log('Tray icon loaded from file');
 
         const contextMenu = Menu.buildFromTemplate([
             {
@@ -98,6 +118,8 @@ function createTray() {
         tray.on('click', () => {
             mainWindow.show();
         });
+
+        console.log('Tray icon created successfully');
     } catch (error) {
         console.error('Failed to create tray:', error);
     }
@@ -157,6 +179,30 @@ ipcMain.handle('set-setting', (event, key, value) => {
 
 ipcMain.handle('get-all-settings', () => {
     return store.getAll();
+});
+
+// Auto-launch handlers
+ipcMain.handle('get-auto-launch', async () => {
+    try {
+        return await morseoAutoLauncher.isEnabled();
+    } catch (error) {
+        console.error('Error checking auto-launch:', error);
+        return false;
+    }
+});
+
+ipcMain.handle('set-auto-launch', async (event, enabled) => {
+    try {
+        if (enabled) {
+            await morseoAutoLauncher.enable();
+        } else {
+            await morseoAutoLauncher.disable();
+        }
+        return true;
+    } catch (error) {
+        console.error('Error setting auto-launch:', error);
+        return false;
+    }
 });
 
 // App lifecycle

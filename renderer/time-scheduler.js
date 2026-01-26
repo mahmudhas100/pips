@@ -17,10 +17,20 @@ class TimeScheduler {
 
     // Start the scheduler
     start() {
-        // Check every minute for audio triggers
+        console.log('TimeScheduler started');
+        // Check every second to catch the exact minute
         this.checkInterval = setInterval(() => {
             this.checkForAudioTriggers();
-        }, 1000); // Check every second to catch the exact minute
+        }, 1000);
+
+        // Log visibility changes to debug background issues
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                console.log('⚠️ Window hidden - scheduler should continue running');
+            } else {
+                console.log('✓ Window visible');
+            }
+        });
     }
 
     // Stop the scheduler
@@ -33,57 +43,68 @@ class TimeScheduler {
     // Check if we need to play audio
     checkForAudioTriggers() {
         const now = new Date();
-        const minutes = now.getMinutes();
         const seconds = now.getSeconds();
+        const minutes = now.getMinutes();
+        const hours = now.getHours();
 
-        // Only trigger once per minute (when seconds == 0)
+        // Only trigger at the exact start of a minute (seconds === 0)
+        // This ensures precise timing aligned with system clock
         if (seconds !== 0) {
             return;
         }
 
-        // Prevent double-triggering in same minute
-        if (minutes === this.lastMinuteChecked) {
+        const currentMinute = `${hours}:${minutes}`;
+
+        // Skip if we already checked this minute
+        if (this.lastMinuteChecked === currentMinute) {
+            return;
+        }
+        this.lastMinuteChecked = currentMinute;
+
+        console.log(`[${currentMinute}:00] Checking for audio triggers`);
+
+        // Check if we're in Quiet Hours (00:00-08:00)
+        const isQuietHours = this.settings.quietHours && (hours >= 0 && hours < 8);
+
+        if (isQuietHours) {
+            console.log('Quiet Hours active - skipping audio notifications');
             return;
         }
 
-        this.lastMinuteChecked = minutes;
-
-        console.log(`Minute check: ${minutes}, masterPause: ${this.settings.masterPause}, quarterBeepsEnabled: ${this.settings.quarterBeepsEnabled}`);
-
-        // Don't play if paused
+        // Check if master pause is active
         if (this.settings.masterPause) {
-            console.log('Skipping audio - app is paused');
+            console.log('Master pause is active - skipping audio triggers');
             return;
         }
 
-        // Check for quarter-hour beeps
+        // Ensure audio context is initialized before playing
+        this.audioSystem.init();
+
+        // Quarter-hour beeps
         if (this.settings.quarterBeepsEnabled) {
             if (minutes === 15) {
-                console.log('Triggering 1 beep at :15');
+                console.log('✓ Triggering 1 beep at :15');
                 this.audioSystem.playBeeps(1);
             } else if (minutes === 30) {
-                console.log('Triggering 2 beeps at :30');
+                console.log('✓ Triggering 2 beeps at :30');
                 this.audioSystem.playBeeps(2);
             } else if (minutes === 45) {
-                console.log('Triggering 3 beeps at :45');
+                console.log('✓ Triggering 3 beeps at :45');
                 this.audioSystem.playBeeps(3);
             }
-        } else {
-            console.log('Quarter beeps are disabled');
         }
 
         // Hourly morse code announcement
         if (minutes === 0) {
-            console.log('Triggering hourly morse announcement');
-            let hours = now.getHours();
-            const mins = now.getMinutes();
+            console.log('✓ Triggering hourly morse announcement');
+            let displayHours = hours;
 
             // Apply time format
             if (this.settings.timeFormat === '12hr') {
-                hours = hours % 12 || 12;
+                displayHours = hours % 12 || 12;
             }
 
-            const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+            const timeString = `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
             this.audioSystem.playMorseTime(timeString);
         }
     }

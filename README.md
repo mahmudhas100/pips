@@ -21,16 +21,33 @@ A minimalist desktop application that provides time awareness through morse code
 - 1, 2, or 3 beeps respectively
 - 0.3 second pause between beeps
 
+✅ **Modern UI**
+- Clean main screen with only morse display and time
+- Settings accessible via sliders icon (top-right)
+- Modal overlay with smooth animations
+- Fade-in, slide-in, and hover effects
+
 ✅ **Time Format Toggle**
 - Switch between 24-hour and 12-hour format
 - Affects both visual display and morse announcements
 - Settings saved automatically
+
+✅ **Quiet Hours**
+- Auto-mute during sleep hours (00:00-08:00)
+- Configurable via settings toggle
+- Scheduler continues running silently
 
 ✅ **Audio Controls**
 - Master ON/OFF toggle to pause all audio
 - Volume control (0-100%)
 - Quarter-hour beeps toggle
 - Test Morse button to preview current time
+
+✅ **System Integration**
+- Launch on startup (optional)
+- System tray icon with morse code design
+- Minimize to tray
+- Background persistence (works when window closed)
 
 ✅ **Settings Persistence**
 - All settings saved automatically across restarts
@@ -92,19 +109,44 @@ npm run dev
 
 ## Roadmap
 
-### Phase 2 ✅ Complete
-- [x] Morse code audio with pre-recorded files
-- [x] Hourly morse code time announcements
-- [x] Visual morse code display (▪▬ symbols)
-- [x] 24hr/12hr time format toggle
-- [x] Test morse button
-- [x] Farnsworth timing (700ms between digits)
+### Phase 1 ✅ Complete - MVP Foundation
+- [x] Electron app setup and configuration
+- [x] Real-time clock display with second updates
+- [x] Quarter-hour beeps (:15, :30, :45)
+- [x] Web Audio API integration (programmatic beeps)
+- [x] Master ON/OFF toggle
+- [x] Volume control slider (0-100%)
+- [x] Quarter beeps toggle
+- [x] Settings persistence (JSON storage)
+- [x] System tray integration
+- [x] Minimize to tray functionality
 
-### Phase 3 (Planned)
-- [ ] Do Not Disturb mode detection
-- [ ] Auto-launch on startup
-- [ ] Improved tray icon
-- [ ] UI animations and polish
+### Phase 2 ✅ Complete - Morse Code Features
+- [x] Morse code encoder utility (digits 0-9)
+- [x] Visual morse display (3-line ▪▬ symbols)
+- [x] Pre-recorded morse audio files integration
+- [x] Hourly morse code time announcements (at :00)
+- [x] Audio buffer loading and caching
+- [x] Farnsworth timing (700ms between digits)
+- [x] 24hr/12hr time format toggle
+- [x] Test Morse button
+- [x] Time format persistence
+- [x] Audio quality optimization
+
+### Phase 3 ✅ Complete - Polish & System Integration
+- [x] UI redesign (clean main screen)
+- [x] Settings modal with animations
+- [x] Sliders icon (intuitive settings access)
+- [x] Fade-in, slide-in, hover animations
+- [x] Quiet Hours (00:00-08:00) auto-mute
+- [x] Auto-launch on startup toggle
+- [x] Custom app icon (morse + analog clock)
+- [x] Custom tray icon (6-line morse design)
+- [x] Background persistence (backgroundThrottling: false)
+- [x] Timing accuracy improvements (seconds === 0)
+- [x] Early audio context initialization
+- [x] Visibility change tracking
+- [x] Tray icon PNG file implementation
 
 ## License
 
