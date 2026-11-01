@@ -10,6 +10,15 @@ use tauri::{Manager, WindowEvent};
 
 fn main() {
     tauri::Builder::default()
+        // Must be registered first (Tauri docs): a second launch gets funneled
+        // here - focus the existing window instead of spawning a second app
+        // (two schedulers would double every beep and race on config.json).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             // Match the Electron app: auto-launched instances start hidden in the tray.
