@@ -4,13 +4,38 @@ class AudioSystem {
         this.audioContext = null;
         this.volume = 0.5; // 0 to 1
         this.audioBuffers = {}; // Cache for loaded audio files
+        this.loadingPromise = null;
     }
 
-    // Initialize AudioContext (must be called after user interaction)
+    // Initialize AudioContext
     init() {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            this.loadMorseAudioFiles();
+
+            // Auto-resume whenever Chromium suspends the context (e.g. window hidden)
+            this.audioContext.onstatechange = () => {
+                if (this.audioContext.state === 'suspended') {
+                    console.log('AudioContext suspended - auto-resuming...');
+                    this.audioContext.resume();
+                }
+            };
+
+            this.loadingPromise = this.loadMorseAudioFiles();
+        }
+    }
+
+    // Ensure AudioContext is running and all files are loaded before playing
+    async ensureReady() {
+        this.init();
+
+        // Chromium suspends AudioContext until a user gesture - resume it
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+
+        // Wait for audio files to finish loading before trying to play
+        if (this.loadingPromise) {
+            await this.loadingPromise;
         }
     }
 
@@ -20,11 +45,11 @@ class AudioSystem {
         const loadPromises = [];
 
         for (let i = 0; i <= 9; i++) {
-            const promise = this.loadAudioFile(i);
-            loadPromises.push(promise);
+            loadPromises.push(this.loadAudioFile(i));
         }
 
         await Promise.all(loadPromises);
+        this.loadingPromise = null; // Clear so ensureReady() doesn't re-await
         console.log('All morse audio files loaded successfully');
     }
 
@@ -47,8 +72,8 @@ class AudioSystem {
     }
 
     // Play a simple beep (for quarter-hour beeps)
-    playBeep(duration = 200, frequency = 700) {
-        this.init();
+    async playBeep(duration = 200, frequency = 700) {
+        await this.ensureReady();
 
         const oscillator = this.audioContext.createOscillator();
         const gainNode = this.audioContext.createGain();
@@ -56,28 +81,28 @@ class AudioSystem {
         oscillator.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
 
-        // Beep settings
         oscillator.frequency.value = frequency;
         oscillator.type = 'sine';
 
-        // Sharp envelope for cleaner morse code
+        // Sharp envelope to avoid clicks
         const now = this.audioContext.currentTime;
         gainNode.gain.setValueAtTime(0, now);
-        gainNode.gain.linearRampToValueAtTime(this.volume * 0.3, now + 0.002); // Sharp attack (2ms)
+        gainNode.gain.linearRampToValueAtTime(this.volume * 0.3, now + 0.002);
         gainNode.gain.setValueAtTime(this.volume * 0.3, now + duration / 1000 - 0.002);
-        gainNode.gain.linearRampToValueAtTime(0, now + duration / 1000); // Sharp release (2ms)
+        gainNode.gain.linearRampToValueAtTime(0, now + duration / 1000);
 
         oscillator.start(now);
         oscillator.stop(now + duration / 1000);
+
+        // Wait for beep to complete before returning
+        await this.sleep(duration);
     }
 
     // Play multiple beeps with pauses (for quarter-hour notifications)
     async playBeeps(count) {
         console.log(`Playing ${count} beep(s)`);
         for (let i = 0; i < count; i++) {
-            this.playBeep(200, 700);
-
-            // Wait 0.3 second before next beep (unless it's the last one)
+            await this.playBeep(200, 700);
             if (i < count - 1) {
                 await this.sleep(300);
             }
@@ -86,7 +111,7 @@ class AudioSystem {
 
     // Play morse code for a single digit using pre-recorded audio
     async playMorseDigit(digit) {
-        this.init();
+        await this.ensureReady();
 
         const buffer = this.audioBuffers[digit];
         if (!buffer) {
@@ -101,31 +126,23 @@ class AudioSystem {
         source.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
 
-        // Set volume
         gainNode.gain.value = this.volume;
-
-        // Play the audio
         source.start(0);
 
         // Wait for the audio to finish
-        const duration = buffer.duration * 1000; // Convert to ms
-        await this.sleep(duration);
+        await this.sleep(buffer.duration * 1000);
     }
 
     // Play time in morse code (HH:MM format)
     async playMorseTime(timeString) {
         console.log(`Playing morse time: ${timeString}`);
 
-        // Get just the digits (remove colon)
         const digits = timeString.replace(/:/g, '');
 
         for (let i = 0; i < digits.length; i++) {
-            const digit = digits[i];
-            await this.playMorseDigit(digit);
-
-            // Farnsworth spacing between digits (longer pause for word spacing)
+            await this.playMorseDigit(digits[i]);
             if (i < digits.length - 1) {
-                await this.sleep(700); // Farnsworth timing - long pause between digits
+                await this.sleep(700); // Farnsworth spacing between digits
             }
         }
 

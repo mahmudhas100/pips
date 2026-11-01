@@ -17,7 +17,9 @@ class SimpleStore {
                 return { ...this.defaults, ...JSON.parse(data) };
             }
         } catch (error) {
-            console.error('Error loading store:', error);
+            console.error('Settings file is corrupt or unreadable — resetting to defaults.', error);
+            // Attempt to delete the corrupt file so next save starts fresh
+            try { fs.unlinkSync(this.filePath); } catch (_) { }
         }
         return { ...this.defaults };
     }

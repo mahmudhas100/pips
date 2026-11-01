@@ -8,9 +8,9 @@
 </head>
 <body>
   <div class="container">
-    <!-- Settings Icon (Top Right) -->
+    <!-- Settings Icon (Top Right) - morphs between gear and X -->
     <div class="settings-icon" id="settingsIcon" title="Settings">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="icon-gear" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="4" y1="21" x2="4" y2="14"></line>
         <line x1="4" y1="10" x2="4" y2="3"></line>
         <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -20,6 +20,10 @@
         <line x1="1" y1="14" x2="7" y2="14"></line>
         <line x1="9" y1="8" x2="15" y2="8"></line>
         <line x1="17" y1="16" x2="23" y2="16"></line>
+      </svg>
+      <svg class="icon-close" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     </div>
 
@@ -37,21 +41,7 @@
   <!-- Settings Modal (Hidden by default) -->
   <div class="settings-modal" id="settingsModal">
     <div class="settings-modal-content">
-      <div class="settings-header">
-        <h2>Settings</h2>
-        <button class="close-btn" id="closeSettings">&times;</button>
-      </div>
-
       <div class="settings-body">
-        <!-- Master Toggle -->
-        <div class="setting-row">
-          <label for="masterToggle">Master Control</label>
-          <label class="toggle-switch">
-            <input type="checkbox" id="masterToggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
         <!-- Volume Slider -->
         <div class="setting-row">
           <label for="volumeSlider">Volume</label>
@@ -101,11 +91,6 @@
             <input type="checkbox" id="autoLaunch">
             <span class="toggle-slider"></span>
           </label>
-        </div>
-
-        <!-- Test Morse Button -->
-        <div class="setting-row">
-          <button id="testMorseBtn" class="test-btn">Test Morse</button>
         </div>
 
         <!-- Status Indicator -->

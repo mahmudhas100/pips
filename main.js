@@ -1,20 +1,23 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const Store = require('./utils/simple-store');
 const AutoLaunch = require('auto-launch');
 
+// Allow AudioContext to work without user gesture (needed for scheduled beeps when window is hidden)
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 let mainWindow;
 let tray = null;
-let store;
 
-// Initialize auto-launcher
+// Initialize auto-launcher (don't pass path - let it auto-detect)
 const morseoAutoLauncher = new AutoLaunch({
     name: 'Morseo',
-    path: app.getPath('exe'),
+    isHidden: true  // Pass --hidden flag on auto-launch
 });
 
 // Initialize settings store
-store = new Store({
+const store = new Store({
     defaults: {
         volume: 50,
         masterPause: false,
@@ -25,10 +28,14 @@ store = new Store({
 });
 
 function createWindow() {
+    // Check if launched with --hidden flag (auto-launch at startup)
+    const startHidden = process.argv.includes('--hidden');
+
     mainWindow = new BrowserWindow({
         width: 400,
         height: 450,
         resizable: false,
+        show: !startHidden,  // Don't show window if auto-launched
         backgroundColor: '#000000',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -56,84 +63,12 @@ function createWindow() {
     });
 }
 
-// Create system tray icon
-function createTray() {
-    try {
-        const { nativeImage } = require('electron');
-        const iconPath = path.join(__dirname, 'assets', 'icons', 'tray-icon.png');
-
-        // Check if file exists
-        const fs = require('fs');
-        if (!fs.existsSync(iconPath)) {
-            console.error('Tray icon file not found at:', iconPath);
-            return;
-        }
-
-        // Load from file - more reliable than base64 on Windows
-        const trayIcon = nativeImage.createFromPath(iconPath);
-
-        if (trayIcon.isEmpty()) {
-            console.error('Tray icon is empty!');
-            return;
-        }
-
-        tray = new Tray(trayIcon);
-        console.log('Tray icon loaded from file');
-
-        const contextMenu = Menu.buildFromTemplate([
-            {
-                label: 'Open',
-                click: () => {
-                    mainWindow.show();
-                }
-            },
-            {
-                label: store.get('masterPause') ? 'Resume' : 'Pause',
-                click: () => {
-                    const currentState = store.get('masterPause');
-                    store.set('masterPause', !currentState);
-                    updateTrayMenu();
-                    // Notify renderer of pause state change
-                    if (mainWindow) {
-                        mainWindow.webContents.send('pause-state-changed', !currentState);
-                    }
-                }
-            },
-            {
-                type: 'separator'
-            },
-            {
-                label: 'Quit',
-                click: () => {
-                    app.isQuitting = true;
-                    app.quit();
-                }
-            }
-        ]);
-
-        tray.setToolTip('Morseo');
-        tray.setContextMenu(contextMenu);
-
-        // Show window on tray click
-        tray.on('click', () => {
-            mainWindow.show();
-        });
-
-        console.log('Tray icon created successfully');
-    } catch (error) {
-        console.error('Failed to create tray:', error);
-    }
-}
-
-function updateTrayMenu() {
-    if (!tray) return; // Skip if tray wasn't created
-
-    const contextMenu = Menu.buildFromTemplate([
+// Build tray context menu template (single source of truth)
+function buildMenuTemplate() {
+    return [
         {
             label: 'Open',
-            click: () => {
-                mainWindow.show();
-            }
+            click: () => { mainWindow.show(); }
         },
         {
             label: store.get('masterPause') ? 'Resume' : 'Pause',
@@ -146,19 +81,47 @@ function updateTrayMenu() {
                 }
             }
         },
-        {
-            type: 'separator'
-        },
+        { type: 'separator' },
         {
             label: 'Quit',
-            click: () => {
-                app.isQuitting = true;
-                app.quit();
-            }
+            click: () => { app.quit(); }
         }
-    ]);
+    ];
+}
 
-    tray.setContextMenu(contextMenu);
+// Create system tray icon
+function createTray() {
+    try {
+        const iconPath = path.join(__dirname, 'assets', 'icons', 'tray-icon.png');
+
+        if (!fs.existsSync(iconPath)) {
+            console.error('Tray icon file not found at:', iconPath);
+            return;
+        }
+
+        const trayIcon = nativeImage.createFromPath(iconPath);
+
+        if (trayIcon.isEmpty()) {
+            console.error('Tray icon is empty!');
+            return;
+        }
+
+        tray = new Tray(trayIcon);
+        console.log('Tray icon loaded from file');
+
+        tray.setToolTip('Morseo');
+        tray.setContextMenu(Menu.buildFromTemplate(buildMenuTemplate()));
+        tray.on('click', () => { mainWindow.show(); });
+
+        console.log('Tray icon created successfully');
+    } catch (error) {
+        console.error('Failed to create tray:', error);
+    }
+}
+
+function updateTrayMenu() {
+    if (!tray) return;
+    tray.setContextMenu(Menu.buildFromTemplate(buildMenuTemplate()));
 }
 
 // IPC Handlers
@@ -181,8 +144,15 @@ ipcMain.handle('get-all-settings', () => {
     return store.getAll();
 });
 
-// Auto-launch handlers
+// Detect if running in dev mode (not packaged)
+const isDev = !app.isPackaged;
+
+// Auto-launch handlers (only work in packaged mode)
 ipcMain.handle('get-auto-launch', async () => {
+    if (isDev) {
+        console.log('Auto-launch check skipped (dev mode)');
+        return false;
+    }
     try {
         return await morseoAutoLauncher.isEnabled();
     } catch (error) {
@@ -192,6 +162,10 @@ ipcMain.handle('get-auto-launch', async () => {
 });
 
 ipcMain.handle('set-auto-launch', async (event, enabled) => {
+    if (isDev) {
+        console.warn('Auto-launch toggle ignored in dev mode - only works in packaged app');
+        return false;
+    }
     try {
         if (enabled) {
             await morseoAutoLauncher.enable();
@@ -219,7 +193,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     // Don't quit on window close, keep running in tray
-    // Only quit when user selects Quit from tray menu
 });
 
 app.on('before-quit', () => {

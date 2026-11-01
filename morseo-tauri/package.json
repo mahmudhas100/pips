@@ -1,0 +1,23 @@
+{
+  "name": "pips-tauri",
+  "version": "2.0.0",
+  "description": "Pips - Morse code time reminder - Ambient time awareness through morse code (Tauri edition)",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "keywords": [
+    "tauri",
+    "morse-code",
+    "time-reminder",
+    "productivity"
+  ],
+  "author": "mahmudhas",
+  "license": "ISC",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

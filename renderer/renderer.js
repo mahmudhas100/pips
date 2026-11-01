@@ -24,17 +24,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.timeScheduler.updateSettings(settings);
     });
 
-    // Initialize audio context early to prevent missed first beeps
-    // This happens after user interaction (DOMContentLoaded)
+    // Initialize audio context at startup - no user gesture required
+    // (autoplay-policy flag set in main.js removes Chromium's restriction)
     window.audioSystem.init();
 });
 
 // Apply loaded settings to UI
 function applySettingsToUI() {
-    // Master toggle
-    const masterToggle = document.getElementById('masterToggle');
-    masterToggle.checked = !settings.masterPause;
-
     // Volume
     const volumeSlider = document.getElementById('volumeSlider');
     const volumeValue = document.getElementById('volumeValue');
@@ -94,38 +90,21 @@ function updateTimeDisplay() {
 
 // Set up event listeners
 function setupEventListeners() {
-    // Settings modal
+    // Settings modal - icon toggles between gear and X
     const settingsIcon = document.getElementById('settingsIcon');
     const settingsModal = document.getElementById('settingsModal');
-    const closeSettings = document.getElementById('closeSettings');
 
     settingsIcon.addEventListener('click', () => {
-        settingsModal.classList.add('active');
-    });
-
-    closeSettings.addEventListener('click', () => {
-        settingsModal.classList.remove('active');
+        const isOpen = settingsModal.classList.toggle('active');
+        settingsIcon.classList.toggle('active', isOpen);
     });
 
     // Close modal when clicking outside
     settingsModal.addEventListener('click', (e) => {
         if (e.target === settingsModal) {
             settingsModal.classList.remove('active');
+            settingsIcon.classList.remove('active');
         }
-    });
-
-    // Master toggle
-    document.getElementById('masterToggle').addEventListener('change', async (e) => {
-        settings.masterPause = !e.target.checked;
-        await window.electronAPI.setSetting('masterPause', settings.masterPause);
-
-        // Pass updated settings to scheduler with new object
-        window.timeScheduler.updateSettings({
-            masterPause: settings.masterPause,
-            quarterBeepsEnabled: settings.quarterBeepsEnabled,
-            quietHours: settings.quietHours
-        });
-        updateStatusIndicator();
     });
 
     // Volume slider
@@ -141,13 +120,7 @@ function setupEventListeners() {
     document.getElementById('quarterBeeps').addEventListener('change', async (e) => {
         settings.quarterBeepsEnabled = e.target.checked;
         await window.electronAPI.setSetting('quarterBeepsEnabled', e.target.checked);
-
-        // Pass updated settings to scheduler with new object
-        window.timeScheduler.updateSettings({
-            masterPause: settings.masterPause,
-            quarterBeepsEnabled: settings.quarterBeepsEnabled,
-            quietHours: settings.quietHours
-        });
+        window.timeScheduler.updateSettings(settings);
     });
 
     // Time format radio buttons
@@ -165,13 +138,7 @@ function setupEventListeners() {
     document.getElementById('quietHours').addEventListener('change', async (e) => {
         settings.quietHours = e.target.checked;
         await window.electronAPI.setSetting('quietHours', e.target.checked);
-
-        // Pass updated settings to scheduler
-        window.timeScheduler.updateSettings({
-            masterPause: settings.masterPause,
-            quarterBeepsEnabled: settings.quarterBeepsEnabled,
-            quietHours: settings.quietHours
-        });
+        window.timeScheduler.updateSettings(settings);
     });
 
     // Auto-launch toggle
@@ -189,13 +156,12 @@ function setupEventListeners() {
         document.getElementById('autoLaunch').checked = enabled;
     });
 
-    // Test morse button
-    document.getElementById('testMorseBtn').addEventListener('click', () => {
+    // Click morse display to play current time in morse
+    document.querySelector('.morse-display').addEventListener('click', () => {
         const now = new Date();
         let hours = now.getHours();
         const minutes = now.getMinutes();
 
-        // Apply time format
         if (settings.timeFormat === '12hr') {
             hours = hours % 12 || 12;
         }
@@ -204,10 +170,6 @@ function setupEventListeners() {
         window.audioSystem.playMorseTime(timeString);
     });
 
-    // Initialize audio context on first user interaction
-    document.body.addEventListener('click', () => {
-        window.audioSystem.init();
-    }, { once: true });
 }
 
 // Update status indicator
