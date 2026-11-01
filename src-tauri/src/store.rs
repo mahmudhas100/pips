@@ -122,8 +122,14 @@ pub fn persist(app: &AppHandle, settings: &Settings) {
         }
         match serde_json::to_string_pretty(settings) {
             Ok(json) => {
-                if let Err(error) = fs::write(&path, json) {
+                // Write to a temp file, then rename over the real one. Renaming
+                // within the same volume is atomic, so a crash or power cut
+                // mid-write can at worst leave the stale-but-valid previous
+                // config instead of a truncated one.
+                let temp = path.with_extension("json.tmp");
+                if let Err(error) = fs::write(&temp, json).and_then(|_| fs::rename(&temp, &path)) {
                     eprintln!("Error saving store: {}", error);
+                    let _ = fs::remove_file(&temp);
                 }
             }
             Err(error) => eprintln!("Error serializing store: {}", error),
